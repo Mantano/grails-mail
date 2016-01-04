@@ -39,9 +39,15 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 import groovy.mock.interceptor.MockFor
 
+import grails.plugin.greenmail.GreenMail
 import com.icegreen.greenmail.util.ServerSetupTest
+import grails.test.mixin.integration.IntegrationTestMixin
+import grails.test.mixin.*
+import org.junit.*
+import static org.junit.Assert.*
 
-class MailServiceTests extends GroovyTestCase {
+@TestMixin(IntegrationTestMixin)
+class MailServiceTests  {
 
     static transactional = false
 
@@ -50,10 +56,10 @@ class MailServiceTests extends GroovyTestCase {
 
     MailMessageContentRenderer mailMessageContentRenderer // autowired
 	GrailsApplication grailsApplication // autowired
+	GreenMail greenMail
 
-	@Override
-    protected void setUp() {
-		super.setUp()
+	@Before
+    void setUp() {
         MailSender mimeMailSender = new JavaMailSenderImpl(host: "localhost", port: ServerSetupTest.SMTP.port)
         MailMessageBuilderFactory mimeMessageBuilderFactor = new MailMessageBuilderFactory(
             mailSender: mimeMailSender,
@@ -64,10 +70,7 @@ class MailServiceTests extends GroovyTestCase {
             grailsApplication: grailsApplication)
 		mimeCapableMailService.afterPropertiesSet()
 
-        MailSender simpleMailSender = new MailSender() {
-            void send(SimpleMailMessage simpleMessage) {}
-            void send(SimpleMailMessage[] simpleMessages) {}
-        }
+        MailSender simpleMailSender = new SimpleMailSender()
         MailMessageBuilderFactory simpleMessageBuilderFactory = new MailMessageBuilderFactory(
             mailSender: simpleMailSender,
             mailMessageContentRenderer: mailMessageContentRenderer
@@ -78,11 +81,11 @@ class MailServiceTests extends GroovyTestCase {
 		nonMimeCapableMailService.afterPropertiesSet()
     }
 
-	@Override
-	protected void tearDown(){
+	@After
+	void tearDown(){
 		mimeCapableMailService.destroy()
 		nonMimeCapableMailService.destroy()
-		super.tearDown()
+		greenMail.deleteAllMessages()
 	}
 
     void testSendSimpleMessage() {
@@ -94,10 +97,10 @@ class MailServiceTests extends GroovyTestCase {
         }
 		assertThat(message, instanceOf(SimpleMailMessage.class));
 
-        assertEquals "Hello John", ((SimpleMailMessage)message).getSubject()
-        assertEquals 'this is some text', message.getText()
-        assertEquals 'fred@g2one.com', message.to[0]
-        assertEquals 'king@g2one.com', message.from
+        assert "Hello John" == ((SimpleMailMessage)message).getSubject()
+        assert 'this is some text'  ==message.getText()
+        assert 'fred@g2one.com' == message.to[0]
+        assert 'king@g2one.com' == message.from
     }
 
     void testAsyncSendSimpleMessage() {
@@ -110,10 +113,10 @@ class MailServiceTests extends GroovyTestCase {
         }
 		assertThat(message, instanceOf(SimpleMailMessage.class));
 
-        assertEquals "Hello John", ((SimpleMailMessage)message).getSubject()
-        assertEquals 'this is some text', message.getText()
-        assertEquals 'fred@g2one.com', message.to[0]
-        assertEquals 'king@g2one.com', message.from
+        assert "Hello John" == ((SimpleMailMessage)message).getSubject()
+        assert 'this is some text' == message.getText()
+        assert 'fred@g2one.com' == message.to[0]
+        assert 'king@g2one.com' == message.from
     }
 
     void testSendToMultipleRecipients() {
@@ -183,6 +186,35 @@ class MailServiceTests extends GroovyTestCase {
         assertEquals 2, message.cc.size()
         assertEquals "marge@g2one.com", message.cc[0]
         assertEquals "ed@g2one.com", message.cc[1]
+    }
+
+    void testSendMailWithEnvelopeFrom() {
+        def message = mimeCapableMailService.sendMail {
+            to "fred@g2one.com"
+            title "Hello John"
+            body 'this is some text'
+            from 'king@g2one.com'
+            envelopeFrom 'peter@g2one.com'
+        }
+
+        def msg = message.mimeMessage
+        assertEquals "Hello John", msg.getSubject()
+        assertEquals "king@g2one.com", msg.getFrom()[0].toString()
+
+        def greenMsg = greenMail.getReceivedMessages()[0]
+        assertEquals "<peter@g2one.com>", greenMsg.getHeader("Return-Path", ",")
+    }
+
+    void testSendMailWithEnvelopeFromAndBasicMailSender() {
+        shouldFail(GrailsMailException) {
+            def message = nonMimeCapableMailService.sendMail {
+                to "fred@g2one.com"
+                title "Hello John"
+                body 'this is some text'
+                from 'king@g2one.com'
+                envelopeFrom 'peter@g2one.com'
+            }
+        }
     }
 
     void testSendHtmlMail() {
@@ -533,4 +565,8 @@ class MailServiceTests extends GroovyTestCase {
     private List<String> bcc(MimeMessage msg) {
         msg.getRecipients(Message.RecipientType.BCC)*.toString()
     }
+}
+class SimpleMailSender implements  MailSender {
+    void send(SimpleMailMessage simpleMessage) {}
+    void send(SimpleMailMessage[] simpleMessages) {}
 }
