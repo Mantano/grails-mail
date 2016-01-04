@@ -15,6 +15,8 @@
  */
 package grails.plugin.mail
 
+import org.codehaus.groovy.grails.plugins.support.aware.GrailsApplicationAware
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue
@@ -30,7 +32,7 @@ import org.springframework.mail.MailMessage
 /**
  * Provides the entry point to the mail sending API.
  */
-class MailService implements InitializingBean, DisposableBean {
+class MailService implements InitializingBean, DisposableBean, GrailsApplicationAware {
 
     static transactional = false
 
