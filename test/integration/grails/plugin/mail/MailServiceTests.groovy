@@ -24,7 +24,7 @@ import javax.mail.internet.MimeMessage
 import javax.mail.internet.MimeMultipart
 
 import org.codehaus.groovy.grails.commons.DefaultGrailsApplication
-import org.codehaus.groovy.grails.commons.GrailsApplication;
+import grails.core.GrailsApplication;
 import org.springframework.core.io.FileSystemResource
 import org.springframework.mail.MailMessage
 import org.springframework.mail.MailSender

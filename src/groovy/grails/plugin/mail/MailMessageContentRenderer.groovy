@@ -30,9 +30,9 @@ import javax.servlet.http.HttpServletResponse
 
 import grails.util.GrailsWebUtil
 import groovy.text.Template
-import org.codehaus.groovy.grails.commons.GrailsApplication
+import grails.core.GrailsApplication
 import org.codehaus.groovy.grails.plugins.GrailsPluginManager
-import org.codehaus.groovy.grails.web.mapping.LinkGenerator
+import grails.web.mapping.LinkGenerator
 import org.codehaus.groovy.grails.web.pages.GroovyPagesTemplateEngine
 import org.codehaus.groovy.grails.web.pages.GroovyPagesUriService
 import org.codehaus.groovy.grails.web.servlet.mvc.GrailsWebRequest
